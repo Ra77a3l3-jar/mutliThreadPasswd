@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 #include "bits/time.h"
@@ -6,15 +7,15 @@
 
 int main(void) {
     char passwd[] = "457229";
+    uint64_t lenght = 6;
+    int threads = 4;
 
     uint64_t target_hash = hash(passwd);
-
-    int threads = 4;
 
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    brute_force(target_hash, threads);
+    brute_force(target_hash, threads, lenght);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 

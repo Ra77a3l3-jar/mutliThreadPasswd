@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -5,8 +6,7 @@
 #include <string.h>
 #include "brute.h"
 #include "hash.h"
-
-#define MAX_PASSWD 1000000
+#include "util.h"
 
 typedef struct {
     int start;
@@ -21,7 +21,7 @@ void *worker(void *arg) {
     char guess[7];
 
     for(int i = data->start; i < data->end && !atomic_load(&found); i++) { // atomic_load retrives safelly value
-        sprintf(guess, "%6d", i);
+        int_to_string(i, guess, 6);
 
         if(hash(guess) == data->target_hash) {
             printf("Passowrd found: %s\n", guess);
@@ -32,15 +32,20 @@ void *worker(void *arg) {
     return NULL;
 }
 
-void brute_force(uint64_t target_hash, int threads) {
+void brute_force(uint64_t target_hash, int threads, uint64_t lenght) {
+    long max = 1;
+    for(uint64_t i = 0; i < lenght; i++) {
+        max *= 10;
+    } // calculates max number of options for given lenght
+
     pthread_t *thread = malloc(sizeof(pthread_t) * threads);
     thread_data_t *thread_data = malloc(sizeof(thread_data_t) * threads);
 
-    int chunk = MAX_PASSWD / threads;
+    int chunk = max / threads;
 
     for(int i = 0; i < threads; i++) {
         thread_data[i].start = i * chunk;
-        thread_data[i].end = (i == threads - 1) ? MAX_PASSWD : (i + 1) * chunk;
+        thread_data[i].end = (i == threads - 1) ? max : (i + 1) * chunk;
         thread_data[i].target_hash = target_hash;
 
         pthread_create(&thread[i], NULL, worker, &thread_data[i]);

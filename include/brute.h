@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-void brute_force(uint64_t target_hash, int threads);
+void brute_force(uint64_t target_hash, int threads, uint64_t lenght);
 
 #endif
