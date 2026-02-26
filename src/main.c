@@ -6,9 +6,9 @@
 #include "hash.h"
 
 int main(void) {
-    char passwd[] = "457229";
-    uint64_t lenght = 6;
-    int threads = 4;
+    char passwd[] = "az9g";
+    uint64_t lenght = 4;
+    int threads = 8;
 
     uint64_t target_hash = hash(passwd);
 
