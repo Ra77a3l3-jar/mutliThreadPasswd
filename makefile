@@ -6,26 +6,52 @@ INCLUDE_DIR := include
 LIB_DIR := lib
 BIN_DIR := bin
 
-# Generate paths for all object files
-OBJS := $(patsubst %.c,%.o, $(wildcard $(SRC_DIR)/*.c) $(wildcard $(LIB_DIR)/**/*.c))
+# Compiler configuration
+CC ?= clang
+NVCC := nvcc
+NVCC_HOST_COMPILER := clang++
 
+# GPU architecture - RTX 3060 (Ampere) uses compute capability 8.6
+# Adjust this for your GPU: https://developer.nvidia.com/cuda-gpus
+GPU_ARCH ?= sm_86
+
+C_SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(LIB_DIR)/**/*.c)
+CU_SRCS := $(wildcard $(SRC_DIR)/*.cu) $(wildcard $(LIB_DIR)/**/*.cu)
+C_OBJS := $(patsubst %.c,%.o,$(C_SRCS))
+CU_OBJS := $(patsubst %.cu,%.o,$(CU_SRCS))
+OBJS := $(C_OBJS) $(CU_OBJS)
+
+# C compiler flags
 CFLAGS := -Wall -Wextra -g -I$(INCLUDE_DIR)
+
+# NVCC flags
+NVCCFLAGS := -I$(INCLUDE_DIR) -ccbin=$(NVCC_HOST_COMPILER) -arch=$(GPU_ARCH) -Xcompiler="-O3 -march=native -ffast-math"
 
 ifeq ($(debug), 1)
 	CFLAGS := $(CFLAGS) -g -O0
+	NVCCFLAGS := $(NVCCFLAGS) -g -G -O0
 else
 	CFLAGS := $(CFLAGS) -Oz
+	NVCCFLAGS := $(NVCCFLAGS) -O3
 endif
+
+# CUDA linking flags
+LDFLAGS := -lcudart
 
 
 # Build executable
 $(NAME): dir $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_DIR)/$@ $(patsubst %, build/%, $(OBJS))
+	$(NVCC) $(NVCCFLAGS) $(LDFLAGS) -o $(BIN_DIR)/$@ $(patsubst %, build/%, $(OBJS))
 
-# Build object files and third-party libraries
-$(OBJS): dir
+# Build C object files
+$(C_OBJS): dir
 	@mkdir -p $(BUILD_DIR)/$(@D)
 	@$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ -c $*.c
+
+# Build CUDA object files
+$(CU_OBJS): dir
+	@mkdir -p $(BUILD_DIR)/$(@D)
+	@$(NVCC) $(NVCCFLAGS) -o $(BUILD_DIR)/$@ -c $*.cu
 
 # Run valgrind memory checker on executable
 check: $(NAME)
