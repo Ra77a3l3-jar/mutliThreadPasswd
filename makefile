@@ -13,7 +13,8 @@ NVCC_HOST_COMPILER := clang++
 
 # GPU architecture - RTX 3060 (Ampere) uses compute capability 8.6
 # Adjust this for your GPU: https://developer.nvidia.com/cuda-gpus
-GPU_ARCH ?= sm_86
+# Using sm_80 for compatibility with CUDA driver 13.0
+GPU_ARCH ?= sm_80
 
 C_SRCS := $(wildcard $(SRC_DIR)/*.c) $(wildcard $(LIB_DIR)/**/*.c)
 CU_SRCS := $(wildcard $(SRC_DIR)/*.cu) $(wildcard $(LIB_DIR)/**/*.cu)
@@ -25,7 +26,7 @@ OBJS := $(C_OBJS) $(CU_OBJS)
 CFLAGS := -Wall -Wextra -g -I$(INCLUDE_DIR)
 
 # NVCC flags
-NVCCFLAGS := -I$(INCLUDE_DIR) -ccbin=$(NVCC_HOST_COMPILER) -arch=$(GPU_ARCH) -Xcompiler="-O3 -march=native -ffast-math"
+NVCCFLAGS := -I$(INCLUDE_DIR) -ccbin=$(NVCC_HOST_COMPILER) -arch=$(GPU_ARCH) -rdc=true -Xcompiler="-O3 -march=native -ffast-math"
 
 ifeq ($(debug), 1)
 	CFLAGS := $(CFLAGS) -g -O0
@@ -39,19 +40,9 @@ endif
 LDFLAGS := -lcudart
 
 
-# Build executable
-$(NAME): dir $(OBJS)
-	$(NVCC) $(NVCCFLAGS) $(LDFLAGS) -o $(BIN_DIR)/$@ $(patsubst %, build/%, $(OBJS))
-
-# Build C object files
-$(C_OBJS): dir
-	@mkdir -p $(BUILD_DIR)/$(@D)
-	@$(CC) $(CFLAGS) -o $(BUILD_DIR)/$@ -c $*.c
-
-# Build CUDA object files
-$(CU_OBJS): dir
-	@mkdir -p $(BUILD_DIR)/$(@D)
-	@$(NVCC) $(NVCCFLAGS) -o $(BUILD_DIR)/$@ -c $*.cu
+# Build executable - compile all CUDA files in one command to avoid driver version issues
+$(NAME): dir
+	$(NVCC) $(NVCCFLAGS) -o $(BIN_DIR)/$@ $(CU_SRCS)
 
 # Run valgrind memory checker on executable
 check: $(NAME)
