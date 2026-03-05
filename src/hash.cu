@@ -1,8 +1,7 @@
 #include "hash.h"
 
-uint64_t hash(const char *input) {
+HOST_DEVICE uint64_t hash(const char *input) {
     uint64_t hash = 1469598103934665603ULL;
-
     for(int i = 0; i < WORK_FACTOR; i++) {
         const char *p = input;
         while(*p) {

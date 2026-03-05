@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
-void brute_force(uint64_t target_hash, int threads, uint64_t lenght);
+#ifdef __CUDACC__
+#define GLB __global__
+#else
+#define GLB
+#endif
+
+GLB void bruteForceKernel(uint64_t target_hash, uint64_t max, int length, char *found_password);
 
 #endif
